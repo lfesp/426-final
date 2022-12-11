@@ -6,17 +6,22 @@
  * handles window resizes.
  *
  */
-import { WebGLRenderer, PerspectiveCamera, Vector3 } from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SeedScene } from 'scenes';
+import { WebGLRenderer, PerspectiveCamera, Vector3, Raycaster } from 'three';
+// https://github.com/mrdoob/three.js/blob/master/examples/misc_controls_pointerlock.html
+
+import { NoiseScene } from 'scenes';
+import { Player } from 'controllers';
+
 
 // Initialize core ThreeJS components
-const scene = new SeedScene();
+// const scene = new SeedScene();
+const scene = new NoiseScene();
 const camera = new PerspectiveCamera();
 const renderer = new WebGLRenderer({ antialias: true });
 
+let player;
+
 // Set up camera
-camera.position.set(6, 3, -10);
 camera.lookAt(new Vector3(0, 0, 0));
 
 // Set up renderer, canvas, and minor CSS adjustments
@@ -27,29 +32,153 @@ document.body.style.margin = 0; // Removes margin around page
 document.body.style.overflow = 'hidden'; // Fix scrolling
 document.body.appendChild(canvas);
 
-// Set up controls
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.enablePan = false;
-controls.minDistance = 4;
-controls.maxDistance = 16;
-controls.update();
+addInstructions();
+addPlayer();
+scene.add(camera);
 
-// Render loop
-const onAnimationFrameHandler = (timeStamp) => {
-    controls.update();
+window.requestAnimationFrame(onAnimationFrameHandler);
+
+windowResizeHandler();
+window.addEventListener('resize', windowResizeHandler, false);
+
+
+// core render loop
+function onAnimationFrameHandler(timeStamp) {
+    // controls.update();
+    // movement();
+    player.update(timeStamp);
     renderer.render(scene, camera);
     scene.update && scene.update(timeStamp);
     window.requestAnimationFrame(onAnimationFrameHandler);
 };
-window.requestAnimationFrame(onAnimationFrameHandler);
 
-// Resize Handler
-const windowResizeHandler = () => {
+// resize handler
+function windowResizeHandler() {
     const { innerHeight, innerWidth } = window;
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
 };
-windowResizeHandler();
-window.addEventListener('resize', windowResizeHandler, false);
+
+// // Set up pointer lock controls
+// function addBlocker() {
+//     let blocker = document.createElement('div');
+//     blocker.style.cssText = `#blocker {
+//         position: absolute;
+//         width: 100%;
+//         height: 100%;
+//         background-color: rgba(0,0,0,0.5);
+//     };`
+//     document.body.appendChild(blocker);
+// }
+
+function addInstructions() {
+    let instructions = document.createElement('div');
+    instructions.style.cssText = `#instructions {
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        text-align: center;
+        font-size: 14px;
+        cursor: pointer;
+    };
+    #blocker {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    };`
+    instructions.innerHTML = `<div id="blocker">
+        <div id="instructions">
+            <p style="font-size:36px">
+                Click to play
+            </p>
+            <p>
+                Move: WASD<br />
+                Jump: SPACE<br />
+                Look: MOUSE
+            </p>
+        </div>
+    </div>`
+
+    document.body.appendChild(instructions);
+}
+
+// function addShader() {
+//     let shader = document.createElement('div');
+//     instructions.style.cssText = `#instructions {
+//         width: 100%;
+//         height: 100%;
+
+//         display: flex;
+//         flex-direction: column;
+//         justify-content: center;
+//         align-items: center;
+
+//         text-align: center;
+//         font-size: 14px;
+//         cursor: pointer;
+//     };
+//     #blocker {
+//         position: absolute;
+//         width: 100%;
+//         height: 100%;
+//         background-color: rgba(0,0,0,0.5);
+//     };`
+//     instructions.innerHTML = `<div id="blocker">
+//         <div id="instructions">
+//             <p style="font-size:36px">
+//                 Click to play
+//             </p>
+//             <p>
+//                 Move: WASD<br />
+//                 Jump: SPACE<br />
+//                 Look: MOUSE
+//             </p>
+//         </div>
+//     </div>`
+
+//     document.body.appendChild(terrainShader);
+// }
+
+function addPlayer() {
+    player = new Player(camera, document, scene);
+}
+
+// function addPointerLock() {
+//     controls = new PointerLockControls(camera, document.body);
+
+//     // const blocker = document.querySelector('blocker');
+//     // const instructions = document.querySelector('instructions');
+//     // debugger;
+//     // let blocker = document.getElementById('blocker');
+//     // let instructions = document.getElementById('instructions');
+
+//     // instructions.addEventListener('click', function () {
+
+//     //     controls.lock();
+
+//     // });
+
+//     // controls.addEventListener('lock', function () {
+
+//     //     instructions.style.display = 'none';
+//     //     blocker.style.display = 'none';
+
+//     // });
+
+//     // controls.addEventListener('unlock', function () {
+
+//     //     blocker.style.display = 'block';
+//     //     instructions.style.display = '';
+
+//     // });
+
+
+//     scene.add(controls.getObject());
+// }
