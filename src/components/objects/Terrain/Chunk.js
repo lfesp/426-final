@@ -1,4 +1,4 @@
-import { Group, Vector3,Color, BufferAttribute, MeshPhongMaterial, Mesh, BufferGeometry } from 'three';
+import { Group, Vector3, Color, BufferAttribute, MeshPhongMaterial, Mesh, BufferGeometry } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createNoise3D } from 'simplex-noise';
 
@@ -322,17 +322,17 @@ class Chunk extends Group {
 
         this.scalarField = parent.scalarField;
 
-        const mesh = this.regenerateChunk(this.scalarField, this.isolevel, this.resolution)
+        this.regenerateChunk(this.scalarField, this.isolevel, this.resolution)
 
-        this.add(mesh);
+        this.add(this.mesh);
     }
 
     regenerateChunk(scalarField, isolevel, resolution) {
         const verts = [];
 
-        const xStart = this.resolution * this.xOffset;
-        const yStart = this.resolution * this.yOffset;
-        const zStart = this.resolution * this.zOffset;
+        const xStart = resolution * this.xOffset;
+        const yStart = resolution * this.yOffset;
+        const zStart = resolution * this.zOffset;
 
         for (let x = xStart; x < xStart + resolution; x++) {
             for (let y = yStart; y < yStart + resolution; y++) {
@@ -342,6 +342,7 @@ class Chunk extends Group {
                     const edges = edgeTable[cubeIdx];
 
                     const cubeVerts = [];
+                    // console.log(x, y, z);
 
                     for (let edge = 0; edge < 12; edge++) {
                         if ( (edges & (1 << edge)) !== 0) {
@@ -375,11 +376,11 @@ class Chunk extends Group {
         geometry = BufferGeometryUtils.mergeVertices(geometry);
         geometry.computeVertexNormals();
 
-        const material = new MeshPhongMaterial({ color: 0xDDDDDD, flatShading: true, vertexColors: true});
+        const material = new MeshPhongMaterial({ color: 0xDDDDDD, flatShading: true, vertexColors: true });
 
         const colors = [];
         const grassColor = new Color(0x5EFF00);
-        const dirtColor = new Color(0x382F2A);
+        const dirtColor = new Color(0x7F6D5C);
         const up = new Vector3(0, 1, 0);
 
         // const simplex = new createNoise3D();
@@ -387,7 +388,7 @@ class Chunk extends Group {
         const normArray = geometry.attributes.normal.array;
         // const vertArray = geometry.attributes.position.array;
         for (let i = 0; i < normArray.length; i += 3) {
-            const normal = new Vector3(normArray[i], normArray[i+1], normArray[i+2]);
+            const normal = new Vector3(normArray[i], normArray[i + 1], normArray[i + 2]);
             const steepness = normal.normalize().dot(up);
             // const noise = 0.05*simplex(vertArray[i], vertArray[i+1], vertArray[i+2]);
             if (steepness >= 0.6) {
@@ -398,8 +399,10 @@ class Chunk extends Group {
         }
 
         geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
-
-        return new Mesh(geometry, material);
+        let mesh = new Mesh(geometry, material);
+        this.mesh = mesh;
+        this.add(mesh);
+        return mesh;
     }
 
     interpolateVert(scalarField, isolevel, edge, x, y, z) {

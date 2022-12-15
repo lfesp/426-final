@@ -6,8 +6,9 @@
  * handles window resizes.
  *
  */
-import { WebGLRenderer, PerspectiveCamera, Vector3, Raycaster } from 'three';
+import { WebGLRenderer, PerspectiveCamera, Vector3, EquirectangularReflectionMapping } from 'three';
 // https://github.com/mrdoob/three.js/blob/master/examples/misc_controls_pointerlock.html
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 import { NoiseScene } from 'scenes';
 import { Player } from 'controllers';
@@ -150,35 +151,19 @@ function addPlayer() {
     player = new Player(camera, document, scene);
 }
 
-// function addPointerLock() {
-//     controls = new PointerLockControls(camera, document.body);
+// addSky()
 
-//     // const blocker = document.querySelector('blocker');
-//     // const instructions = document.querySelector('instructions');
-//     // debugger;
-//     // let blocker = document.getElementById('blocker');
-//     // let instructions = document.getElementById('instructions');
+// function addSky() {
+//     new RGBELoader()
+//         .setPath('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/')
+//         .load('quarry_01_puresky_2k.hdr', function (texture) {
 
-//     // instructions.addEventListener('click', function () {
+//             texture.mapping = EquirectangularReflectionMapping;
 
-//     //     controls.lock();
+//             scene.background = texture;
+//             scene.environment = texture;
 
-//     // });
+//             render();
 
-//     // controls.addEventListener('lock', function () {
-
-//     //     instructions.style.display = 'none';
-//     //     blocker.style.display = 'none';
-
-//     // });
-
-//     // controls.addEventListener('unlock', function () {
-
-//     //     blocker.style.display = 'block';
-//     //     instructions.style.display = '';
-
-//     // });
-
-
-//     scene.add(controls.getObject());
+//         });
 // }
