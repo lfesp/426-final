@@ -24,6 +24,8 @@ class Player {
         this.raycaster = new Raycaster(this.position, new Vector3(0, -1, 0), 0, 1000);
         this.sightcaster = new Raycaster(this.position, new Vector3(), 0, 1000)
         this.sightSphere = new Mesh(new SphereBufferGeometry(0.5, 16, 8), new MeshBasicMaterial({ color: 0xffffff }))
+        this.personSphere = new Mesh(new SphereBufferGeometry(3, 16, 8), new MeshBasicMaterial({ color: 0x0000ff }))
+        scene.add(this.personSphere)
         // add sphere to the scene
         scene.add(this.sightSphere);
         this.scene = scene;
@@ -40,6 +42,8 @@ class Player {
         );
 
         this.camera.lookAt(1, 0, 1);
+
+        this.overheadView = false
 
 
         this.points = 0
@@ -116,7 +120,9 @@ class Player {
                 break;
             case 'ShiftLeft':
                 moveDown = true;
-
+                break;
+            case 'KeyE':
+                this.overheadView = true
                 break;
         }
 
@@ -153,13 +159,16 @@ class Player {
             case 'ShiftLeft':
                 moveDown = false;
                 break;
+            case 'KeyE':
+                this.overheadView = false
+                break;
 
         }
 
     };
 
     newPoint() {
-        return new Vector3(Math.random() * 20 * 10, Math.random() * 20 * 4 + 20 * 2, Math.random() * 20 * 10)
+        return new Vector3(Math.random() * 15 * 10 + 25, Math.random() * 20 * 4 + 20 * 2, Math.random() * 15 * 10 + 25)
     }
 
     checkPoint() {
@@ -222,7 +231,6 @@ class Player {
 
         //     intersections[0].face.color = 0xff0000;
         // }
-
         this.raycaster.set(this.position, new Vector3(0, -1, 0))
         const intersections = this.raycaster.intersectObjects(this.scene.terrain.children, true);
         this.onGround = false
@@ -235,7 +243,8 @@ class Player {
             }
         }
 
-        //  this.raycaster.set(this.position, new Vector3(0, -1, 0))
+        // this.raycaster.set(this.position, new Vector3(0, 1, 0))
+        // const intersections = this.raycaster.intersectObjects(this.scene.terrain.children, true);
 
 
         let eps = 10
@@ -248,6 +257,16 @@ class Player {
 
         this.position.addScaledVector(this.velocity, delta);
         this.camera.position.copy(this.position);
+
+        this.personSphere.visible = false
+        this.personSphere.position.copy(this.position)
+        if (this.overheadView) {
+            this.personSphere.visible = true
+            this.camera.position.x = 20 * 5
+            this.camera.position.y = 300
+            this.camera.position.z = 20 * 5
+            this.camera.lookAt(new Vector3(5 * 20, 0, 5 * 20))
+        }
 
 
         this.velocity.x *= friction;
