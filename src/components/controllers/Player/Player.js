@@ -1,38 +1,48 @@
-import { Vector3, Raycaster, Ray, Vector2, Mesh, SphereBufferGeometry, MeshBasicMaterial } from 'three';
+import { Vector3, Raycaster, Mesh, SphereBufferGeometry, MeshBasicMaterial, Line, LineBasicMaterial, BufferGeometry } from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
-let moveUp = false;
-let moveDown = false;
+const MOVE_SPEED = 6;
+const GRAPPLE_SPEED = 10;
+const GRAPPLE_LENGTH = 12;
+const GRAVITY = 1.3;
+const JUMP_STRENGTH = 50;
+const DAMPING = 8;
+const EPS = 10;
 
-const moveSpeed = 5;
-const gravity = 1.3;
-const jumpSpeed = 30;
-const friction = 0.8;
-
-const pointRadius = 5
-
+const POINT_RADIUS = 5
+const PLAYER_HEIGHT = 12;
 class Player {
     constructor(camera, document, scene) {
+        this.scene = scene;
+        this.prevTime = performance.now();
+
         this.position = new Vector3(0, 100, 0);
-        // this.acceleration = new Vector3(0, 0, 0);
         this.velocity = new Vector3(0, 0, 0);
         this.direction = new Vector3(0, 0, 0);
+        this.onGround = true;
+
+        this.moveForward = false;
+        this.moveBackward = false;
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.adding = false;
+        this.grappling = false;
+        this.deleting = false;
+
         this.raycaster = new Raycaster(this.position, new Vector3(0, -1, 0), 0, 1000);
         this.sightcaster = new Raycaster(this.position, new Vector3(), 0, 1000)
+        this.sightPoint = new Vector3();
+        this.grapplePoint = new Vector3();
         this.sightSphere = new Mesh(new SphereBufferGeometry(0.5, 16, 8), new MeshBasicMaterial({ color: 0xffffff }))
-        this.personSphere = new Mesh(new SphereBufferGeometry(3, 16, 8), new MeshBasicMaterial({ color: 0x0000ff }))
-        scene.add(this.personSphere)
-        // add sphere to the scene
+        this.minimapSphere = new Mesh(new SphereBufferGeometry(3, 16, 8), new MeshBasicMaterial({ color: 0x0000ff }))
+        
+        scene.add(this.minimapSphere)
         scene.add(this.sightSphere);
-        this.scene = scene;
-        this.onGround = true
-        this.adding = false
-        this.deleting = false;
-        this.prevTime = performance.now();
+
+        this.line = new Line(new BufferGeometry().setFromPoints( [this.position, this.grapplePoint ]), new LineBasicMaterial({color: 0xffffff, linewidth: 50}));
+        this.line.frustumCulled = false;
+        scene.add(this.line);
+        
 
         this.camera = camera;
 
@@ -45,10 +55,9 @@ class Player {
 
         this.overheadView = false
 
-
         this.points = 0
-        this.nextPoint = this.newPoint()
-        this.pointSphere = new Mesh(new SphereBufferGeometry(pointRadius, 16, 8), new MeshBasicMaterial({ color: 0xffd700 }))
+        this.nextPoint = this.newPoint();
+        this.pointSphere = new Mesh(new SphereBufferGeometry(POINT_RADIUS, 16, 8), new MeshBasicMaterial({ color: 0xffd700 }))
         this.pointSphere.position.copy(this.nextPoint)
         this.scene.add(this.pointSphere)
 
@@ -88,98 +97,108 @@ class Player {
     }
 
     onKeyDown(event) {
-
         switch (event.code) {
-
             case 'ArrowUp':
             case 'KeyW':
-                moveForward = true;
+                this.moveForward = true;
                 break;
 
             case 'ArrowLeft':
             case 'KeyA':
-                moveLeft = true;
+                this.moveLeft = true;
                 break;
 
             case 'ArrowDown':
             case 'KeyS':
-                moveBackward = true;
+                this.moveBackward = true;
                 break;
 
             case 'ArrowRight':
             case 'KeyD':
-                moveRight = true;
+                this.moveRight = true;
                 break;
 
             case 'Space':
-                // moveUp = true;
                 if (this.onGround === true) {
-                    this.velocity.y = jumpSpeed;
+                    this.velocity.y = JUMP_STRENGTH;
                     this.onGround = false
                 }
                 break;
+
             case 'ShiftLeft':
-                moveDown = true;
+                this.grappling = true;
+                this.grapplePoint = this.sightPoint;
+                this.line.visible = true;
                 break;
-            case 'KeyE':
+
+            case 'KeyQ':
                 this.overheadView = true
                 break;
         }
-
     };
 
     onKeyUp(event) {
-
         switch (event.code) {
-
             case 'ArrowUp':
             case 'KeyW':
-                moveForward = false;
+                this.moveForward = false;
                 break;
 
             case 'ArrowLeft':
             case 'KeyA':
-                moveLeft = false;
+                this.moveLeft = false;
                 break;
 
             case 'ArrowDown':
             case 'KeyS':
-                moveBackward = false;
+                this.moveBackward = false;
                 break;
 
             case 'ArrowRight':
             case 'KeyD':
-                moveRight = false;
+                this.moveRight = false;
                 break;
-            case 'Space':
-                moveUp = false;
-                // if (canJump === true) velocity.y = 150;
-                // onGround = false;
-                break;
+
             case 'ShiftLeft':
-                moveDown = false;
+                this.grappling = false;
+                this.line.visible = false;
                 break;
-            case 'KeyE':
+
+            case 'KeyQ':
                 this.overheadView = false
                 break;
-
         }
-
     };
 
     newPoint() {
-        return new Vector3(Math.random() * 15 * 10 + 25, Math.random() * 20 * 4 + 20 * 2, Math.random() * 15 * 10 + 25)
+        return new Vector3(Math.random() * 15 * 10 + 25, Math.random() * 20 * 4 + 20 * 2, Math.random() * 15 * 10 + 25);
+        // let position;
+        // do {
+        //     position = new Vector3(Math.random() * 15 * 10 + 25, Math.random() * 20 * 4 + 20 * 2, Math.random() * 15 * 10 + 25);
+        // } while (this.scene.terrain.scalarField[Math.floor(position.x)][Math.floor(position.y)][Math.floor(position.z)] < this.scene.terrain.isolevel);
+        // return position;
     }
 
     checkPoint() {
-        if (this.position.distanceTo(this.nextPoint) < pointRadius * 2) {
+        if (this.position.distanceTo(this.nextPoint) < POINT_RADIUS * 2) {
             this.points += 1
             this.nextPoint = this.newPoint()
             this.pointSphere.position.copy(this.nextPoint)
             this.scene.state.points = this.points;
-            
-            // this.scene.state.timer = new
         }
+    }
+
+    updateGrappleLine() {
+        const positions = this.line.geometry.attributes.position.array;
+        positions[0] = this.position.x;
+        positions[1] = this.position.y - 1;
+        positions[2] = this.position.z;
+
+        positions[3] = this.grapplePoint.x;
+        positions[4] = this.grapplePoint.y;
+        positions[5] = this.grapplePoint.z;
+
+        this.line.geometry.attributes.position.needsUpdate = true;
     }
 
     // not mine
@@ -189,103 +208,93 @@ class Player {
 
         this.checkPoint()
 
+        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+        // ensure consistent mopvement speed in all directions.
+        this.direction.normalize();
+
+        const cameraDirection = this.controls.getDirection(new Vector3());
+        cameraDirection.normalize();
+        const rightDirection = cameraDirection.clone().cross(this.camera.up).normalize();
+
+   
+        if (this.moveForward || this.moveBackward) {
+            this.velocity.x += cameraDirection.x * this.direction.z * MOVE_SPEED;
+            this.velocity.z += cameraDirection.z * this.direction.z * MOVE_SPEED;
+        }
+        if (this.moveLeft || this.moveRight) {
+            this.velocity.x += rightDirection.x * this.direction.x * MOVE_SPEED;
+            this.velocity.z += rightDirection.z * this.direction.x * MOVE_SPEED;
+        }
+
+
         if (this.adding || this.deleting) {
-            let sightPoint = this.castSight()
-            if (sightPoint) {
-                console.log(sightPoint);
-                if (this.adding) this.scene.terrain.addTerrain(sightPoint, this.scene);
-                if (this.deleting) this.scene.terrain.deleteTerrain(sightPoint, this.scene);
+            if (this.sightPoint) {
+                if (this.adding) this.scene.terrain.addTerrain(this.sightPoint, delta);
+                if (this.deleting) this.scene.terrain.deleteTerrain(this.sightPoint, delta);
             }
         }
 
-        // this.acceleration.x = 0.0;
-        // this.acceleration.y = 0.0;
-        // this.acceleration.z = 0.0;
-        // this.acceleration.y -= 10.;
+        if (this.grappling) {
+            if (this.grapplePoint) {
+                const toGrapple = this.grapplePoint.clone().sub(this.position);
+                if (toGrapple.length() >= GRAPPLE_LENGTH) this.velocity.addScaledVector(toGrapple.normalize(), GRAPPLE_SPEED);
+            }
+        }
 
-        // this.velocity.multiplyScalar(friction * delta)
-        this.velocity.y -= gravity;
-        // this.velocity.y = Math.min(-gravity * 4, this.velocity.y);
-        this.position.y = Math.min(Math.max(0, this.position.y), 300);
-
-        this.direction.z = Number(moveForward) - Number(moveBackward);
-        this.direction.x = Number(moveRight) - Number(moveLeft);
-        this.direction.y = Number(moveUp) - Number(moveDown);
-        this.direction.normalize(); // this ensures consistent movements in all directions
-
-        const cameraDirection = this.controls.getDirection(new Vector3());
-        cameraDirection.y = 0
-        cameraDirection.normalize()
-        const rightDirection = cameraDirection.clone().cross(this.camera.up).normalize();
-
-        if (moveForward || moveBackward) this.velocity.addScaledVector(cameraDirection, this.direction.z * moveSpeed);
-        if (moveLeft || moveRight) this.velocity.addScaledVector(rightDirection, this.direction.x * moveSpeed);
-        if (moveUp || moveDown) this.velocity.addScaledVector(this.camera.up, this.direction.y * moveSpeed);
+        this.velocity.y -= GRAVITY;
 
         this.position.addScaledVector(this.velocity, delta);
 
-        // if (onObject === true) {
-        //     // controls.getObject().position.y = intersections[0].point.y + 20;
-        //     velocity.y = Math.max(0, velocity.y);
-        //     canJump = true;
-
-        //     intersections[0].face.color = 0xff0000;
-        // }
         this.raycaster.set(this.position, new Vector3(0, -1, 0))
         const intersections = this.raycaster.intersectObjects(this.scene.terrain.children, true);
         this.onGround = false
         if (intersections.length > 0) {
             const distance = intersections[0].distance;
-            if (distance < 15) {
-                this.position.y = Math.max(this.position.y, intersections[0].point.y + 15)
+            if (distance < PLAYER_HEIGHT) {
+                this.position.y = Math.max(this.position.y, intersections[0].point.y + PLAYER_HEIGHT)
                 this.velocity.y = Math.max(0, this.velocity.y);
                 this.onGround = true
             }
         }
 
-        // this.raycaster.set(this.position, new Vector3(0, 1, 0))
-        // const intersections = this.raycaster.intersectObjects(this.scene.terrain.children, true);
+        this.position.y = Math.max(this.position.y, EPS);
+        this.position.x = Math.min(Math.max(this.position.x, EPS), 20 * 10 - EPS * 4); // resolution * xLength
+        this.position.z = Math.min(Math.max(this.position.z, EPS), 20 * 10 - EPS * 4); // resolution * zLength
 
-
-        let eps = 10
-        this.position.y = Math.max(this.position.y, eps);
-        this.position.x = Math.min(Math.max(this.position.x, eps), 20 * 10 - eps * 4); // resolution * xLength
-        this.position.z = Math.min(Math.max(this.position.z, eps), 20 * 10 - eps * 4); // resolution * zLength
-        //    this.position.x = Math.min(this.position.y, 0);
-        //    this.position.z = Math.min(this.position.y, 0);
-        //    this.position.y = Math.min(this.position.y, 0);
-
-        this.position.addScaledVector(this.velocity, delta);
         this.camera.position.copy(this.position);
 
-        this.personSphere.visible = false
-        this.personSphere.position.copy(this.position)
+        this.minimapSphere.visible = false
+        this.minimapSphere.position.copy(this.position)
+
+        // display minimap view by changing camera position.
         if (this.overheadView) {
-            this.personSphere.visible = true
+            this.minimapSphere.visible = true
             this.camera.position.x = 20 * 5
             this.camera.position.y = 300
             this.camera.position.z = 20 * 5
             this.camera.lookAt(new Vector3(5 * 20, 0, 5 * 20))
         }
 
-
-        this.velocity.x *= friction;
-        this.velocity.z *= friction;
-
-        // damping
-        // this.velocity.addScaledVector(this.velocity, -0.85);
-        // this.acceleration.addScaledVector(this.acceleration, -0.85);
+        // apply friction to non-vertical movement.
+        this.velocity.x -= this.velocity.x * delta * DAMPING;
+        this.velocity.z -= this.velocity.z * delta * DAMPING;
 
         this.castSight()
+        this.sightSphere.position.copy(this.sightPoint);
+        if (this.grappling) this.updateGrappleLine();
     }
 
+    // cast a ray from the center of the screen to intersect
+    // with the world. if there is a collision, move the white 'sight cursor/reticle'
+    // and return the intersection position.
     castSight() {
         let dir = new Vector3();
         this.camera.getWorldDirection(dir);
         this.sightcaster.set(this.position, dir);
         const results = this.sightcaster.intersectObjects(this.scene.terrain.children, true);
         if (results.length > 0) {
-            this.sightSphere.position.copy(results[0].point);
+            this.sightPoint = results[0].point;
             return results[0].point
         }
         return undefined

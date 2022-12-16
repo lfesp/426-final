@@ -1,7 +1,7 @@
 import * as Dat from 'dat.gui';
 import { Scene, Color } from 'three';
 import { BasicLights } from 'lights';
-import { Terrain2 } from 'objects';
+import { Terrain } from 'objects';
 
 
 class NoiseScene extends Scene {
@@ -18,7 +18,7 @@ class NoiseScene extends Scene {
             refresh: () => {
                 if (this.terrain === undefined) return;
                 this.remove(this.terrain);
-                this.terrain = new Terrain2(this);
+                this.terrain = new Terrain(this);
                 this.add(this.terrain);
             },
             updateList: [],
@@ -31,7 +31,7 @@ class NoiseScene extends Scene {
         const lights = new BasicLights();
         this.add(lights);
 
-        this.terrain = new Terrain2(this);
+        this.terrain = new Terrain(this);
         // this.add(new Terrain(this));
         this.add(this.terrain);
 
