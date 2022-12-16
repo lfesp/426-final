@@ -1,9 +1,9 @@
 {
-  "name": "runworld",
-  "repository": "runworld",
+  "name": "digworld",
+  "repository": "digworld",
   "version": "0.1.0",
-  "title": "RUNWORLD",
-  "description": "SHORT DESCRIPTION OF PROJECT HERE. ONE TO TWO SENTENCES MAX",
+  "title": "DIGWORLD",
+  "description": "a first-person, 3D platformer video game set in a sandbox environment featuring procedural generation, real-time terraforming, and momentum-based traversal. built by Luke Shannon and Liam Esparraguera",
   "keywords": [
     "Princeton",
     "graphics",

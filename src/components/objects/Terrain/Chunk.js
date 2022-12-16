@@ -1,6 +1,5 @@
 import { Group, Vector3, Color, BufferAttribute, MeshPhongMaterial, Mesh, BufferGeometry } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { createNoise3D } from 'simplex-noise';
 
 const _globalScale = 20;
 
@@ -298,9 +297,14 @@ const edgeTable = [
     0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0,
 ];
 
+// maps connections of cube vertices for marching cubes algorithm
+// source: http://paulbourke.net/geometry/polygonise/
 const edgeVerts = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
-
 const cornerVerts = [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1], [0, 1, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1]];
+
+const GRASS_COLOR = new Color(0x5EFF00);
+const DIRT_COLOR = new Color(0x7F6D5C);
+const UP = new Vector3(0, 1, 0);
 
 class Chunk extends Group {
     constructor(parent, x, y, z) {
@@ -327,6 +331,9 @@ class Chunk extends Group {
         this.add(this.mesh);
     }
 
+    // regenerates chunk mesh using scalar field
+    // this is the core marching cubes implementation
+    // algorithm details: http://paulbourke.net/geometry/polygonise/
     regenerateChunk(scalarField, isolevel, resolution) {
         const verts = [];
 
@@ -342,7 +349,6 @@ class Chunk extends Group {
                     const edges = edgeTable[cubeIdx];
 
                     const cubeVerts = [];
-                    // console.log(x, y, z);
 
                     for (let edge = 0; edge < 12; edge++) {
                         if ( (edges & (1 << edge)) !== 0) {
@@ -372,6 +378,7 @@ class Chunk extends Group {
 
         let geometry = new BufferGeometry();
 
+        // add vertex positions to construct geometry 
         geometry.setAttribute('position', new BufferAttribute(new Float32Array(verts), 3));
         geometry = BufferGeometryUtils.mergeVertices(geometry);
         geometry.computeVertexNormals();
@@ -379,9 +386,6 @@ class Chunk extends Group {
         const material = new MeshPhongMaterial({ color: 0xDDDDDD, flatShading: true, vertexColors: true });
 
         const colors = [];
-        const grassColor = new Color(0x5EFF00);
-        const dirtColor = new Color(0x7F6D5C);
-        const up = new Vector3(0, 1, 0);
 
         // const simplex = new createNoise3D();
 
@@ -389,12 +393,12 @@ class Chunk extends Group {
         // const vertArray = geometry.attributes.position.array;
         for (let i = 0; i < normArray.length; i += 3) {
             const normal = new Vector3(normArray[i], normArray[i + 1], normArray[i + 2]);
-            const steepness = normal.normalize().dot(up);
+            const steepness = normal.normalize().dot(UP);
             // const noise = 0.05*simplex(vertArray[i], vertArray[i+1], vertArray[i+2]);
             if (steepness >= 0.6) {
-                colors.push(grassColor.r, grassColor.g, grassColor.b);
+                colors.push(GRASS_COLOR.r, GRASS_COLOR.g, GRASS_COLOR.b);
             } else {
-                colors.push(dirtColor.r, dirtColor.g, dirtColor.b);
+                colors.push(DIRT_COLOR.r, DIRT_COLOR.g, DIRT_COLOR.b);
             }
         }
 
@@ -405,6 +409,9 @@ class Chunk extends Group {
         return mesh;
     }
 
+    // interpolate a vertex position along a cube's edge using
+    // value of scalar field at corners, then scale up to world coordinates.
+    // source: http://paulbourke.net/geometry/polygonise/
     interpolateVert(scalarField, isolevel, edge, x, y, z) {
         const vert1 = cornerVerts[edgeVerts[edge][0]];
         const vert2 = cornerVerts[edgeVerts[edge][1]];
@@ -426,6 +433,8 @@ class Chunk extends Group {
         return p;
     }
 
+    // calcuate cube mesh index using values of scalar field at vertices
+    // source: http://paulbourke.net/geometry/polygonise/ 
     getCubeIndex(scalarField, isolevel, x, y, z) {
         let cubeIdx = 0;
 

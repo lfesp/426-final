@@ -208,16 +208,18 @@ class Player {
 
         this.checkPoint()
 
+        // ensure consistent movement speed in all directions.
         this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
         this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        // ensure consistent mopvement speed in all directions.
         this.direction.normalize();
 
+        // calculate vectors to convert movement vector from camera to world coords
         const cameraDirection = this.controls.getDirection(new Vector3());
         cameraDirection.normalize();
         const rightDirection = cameraDirection.clone().cross(this.camera.up).normalize();
 
    
+        // apply player movement in world coords
         if (this.moveForward || this.moveBackward) {
             this.velocity.x += cameraDirection.x * this.direction.z * MOVE_SPEED;
             this.velocity.z += cameraDirection.z * this.direction.z * MOVE_SPEED;
@@ -228,6 +230,7 @@ class Player {
         }
 
 
+        // handle terrain addition and deletion
         if (this.adding || this.deleting) {
             if (this.sightPoint) {
                 if (this.adding) this.scene.terrain.addTerrain(this.sightPoint, delta);
@@ -235,6 +238,7 @@ class Player {
             }
         }
 
+        // apply acceleration due to grapple hook
         if (this.grappling) {
             if (this.grapplePoint) {
                 const toGrapple = this.grapplePoint.clone().sub(this.position);
@@ -244,8 +248,10 @@ class Player {
 
         this.velocity.y -= GRAVITY;
 
+        // update position
         this.position.addScaledVector(this.velocity, delta);
 
+        // handle ground collisions
         this.raycaster.set(this.position, new Vector3(0, -1, 0))
         const intersections = this.raycaster.intersectObjects(this.scene.terrain.children, true);
         this.onGround = false
@@ -258,16 +264,17 @@ class Player {
             }
         }
 
+        // clamp position into bounding box of world
         this.position.y = Math.max(this.position.y, EPS);
         this.position.x = Math.min(Math.max(this.position.x, EPS), 20 * 10 - EPS * 4); // resolution * xLength
         this.position.z = Math.min(Math.max(this.position.z, EPS), 20 * 10 - EPS * 4); // resolution * zLength
 
+        // update camera position
         this.camera.position.copy(this.position);
 
+        // display minimap view by changing camera position.
         this.minimapSphere.visible = false
         this.minimapSphere.position.copy(this.position)
-
-        // display minimap view by changing camera position.
         if (this.overheadView) {
             this.minimapSphere.visible = true
             this.camera.position.x = 20 * 5
