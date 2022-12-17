@@ -6,9 +6,8 @@
  * handles window resizes.
  *
  */
-import { WebGLRenderer, PerspectiveCamera, Vector3, EquirectangularReflectionMapping } from 'three';
+import { WebGLRenderer, PerspectiveCamera, Vector3 } from 'three';
 // https://github.com/mrdoob/three.js/blob/master/examples/misc_controls_pointerlock.html
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 import { NoiseScene } from 'scenes';
 import { Player } from 'controllers';
