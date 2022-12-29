@@ -38,7 +38,8 @@ class Terrain extends Group {
         this.name = 'terrain';
 
         this.isolevel = 0.7;
-        this.resolution = Math.round(parent.state.lod); // number of field segments in a chunk
+        this.resolution = 20 // number of field segments in a chunk
+        // this.resolution = Math.round(parent.state.lod);
         this.xLength = MAP_X; // number of chunks long in x direction
         this.yLength = MAP_Y // number of chunks tall in y direction
         this.zLength = MAP_Z; // number of chunks long in z direction

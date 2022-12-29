@@ -14,7 +14,7 @@ class NoiseScene extends Scene {
             gui: new Dat.GUI(), // Create GUI for scene
             rotationSpeed: 1,
             points: 0,
-            lod: 20,
+            // lod: 20,
             refresh: () => {
                 if (this.terrain === undefined) return;
                 this.remove(this.terrain);
@@ -38,7 +38,7 @@ class NoiseScene extends Scene {
         // Populate GUI
         // this.state.gui.add(this.state, 'rotationSpeed', -5, 5);
         this.state.gui.add(this.state, 'points').listen();
-        this.state.gui.add(this.state, "lod", 5, 30).listen();
+        // this.state.gui.add(this.state, "lod", 5, 30).listen();
         this.state.gui.add(this.state, 'refresh');
     }
 
